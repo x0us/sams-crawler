@@ -1,0 +1,53 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - master
+      
+jobs:
+  PROD:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Install build dependencies
+      run: |
+        sudo apt-get -y update
+        sudo apt-get -y install curl
+        sudo apt-get -y install zip unzip
+    - name: Install Oracle client
+      run: |
+        curl -L https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linuxx64.zip -o instantclient-basic-linuxx64.zip
+        unzip -jq -o instantclient-basic-linuxx64.zip -d oracle
+        rm -rf instantclient-basic-linuxx64.zip
+        cd oracle
+        mkdir -p network/admin
+        cd network/admin
+        curl -L ${{ secrets.INFO }} -o wallet.zip
+        unzip -jq -o wallet.zip
+    - name: create env file
+      run: |
+        touch .env
+        echo DB_USER=${{ secrets.DB_USER }} >>.env
+        echo DB_PASSWORD=${{ secrets.DB_PASSWORD }} >>.env
+        echo DB_CONNECTION_STRING=${{ secrets.DB_CONNECTION_STRING }} >>.env        
+    - name: npm install, build
+      run: |
+        npm install
+        npm run tsc --if-present      
+    - name: Deploy IBM App
+      uses: x0us/ibm-cloud-foundry-deploy@master
+      with:
+        API_KEY: ${{ secrets.IBM_API_KEY }}
+        CF_API_ENDPOINT: ${{ secrets.CF_API_ENDPOINT }}
+        MANIFEST_FILE_PATH: ./manifest.yml
+        ORG: ${{ secrets.ORG }}
+        SPACE: dev 
