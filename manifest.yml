@@ -4,4 +4,4 @@ applications:
   name: jp-crawler-1
   random-route: true
   health-check-type: process
-  memory: 64M
+  memory: 128M
