@@ -23,6 +23,10 @@ const headers = {
   'Content-Type': ' application/json',
 };
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
   console.log('program start at: ' + new Date());
   //init instance
@@ -84,6 +88,12 @@ async function main() {
   }
 
   console.log('program finished at: ' + new Date());
+  console.log('waiting next day')
+  await sleep(86400000)
+  console.log('waiting finished')
 }
 
 main();
+
+//be benifit 
+
