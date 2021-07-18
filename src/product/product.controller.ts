@@ -50,17 +50,9 @@ const updateInProduct = async (
   return await OracleDB.execute(sql);
 };
 
-const updateOffMarket = async (product: number) => {
-  const sql = `UPDATE PRODUCT_CD SET AVAILABLE = 0 where SPU_ID = ${product}`;
+const updateOffLine = async (product: number) => {
+  const sql = `UPDATE PRODUCT SET AVAILABLE = 0 where SPU_ID = ${product}`;
   return await OracleDB.execute(sql);
-};
-
-const checkAvalibility = async () => {
-  setProds.forEach(async (value, key) => {
-    if (value.available === 0) {
-      await updateOffMarket(key);
-    }
-  });
 };
 
 /**
@@ -68,7 +60,7 @@ const checkAvalibility = async () => {
  */
 const getAllProducts = async () => {
   const result = await OracleDB.execute(
-    'SELECT SPU_ID AS "spuId", PRICE_CD AS "priceCd", PRICE_CQ AS "priceCq", PRICE_GZ AS "priceGz", PRICE_BJ AS "priceBj", AVAILABLE AS "available" FROM PRODUCT',
+    'SELECT SPU_ID AS "spuId", PRICE_CD AS "priceCd", PRICE_CQ AS "priceCq", PRICE_GZ AS "priceGz", PRICE_BJ AS "priceBj" FROM PRODUCT',
     {},
     {
       outFormat: OUT_FORMAT_OBJECT,
@@ -82,8 +74,6 @@ const getAllProducts = async () => {
         priceGz: rows[i].priceGz,
         priceBj: rows[i].priceBj,
         priceCq: rows[i].priceCq,
-        //default allproduct offmarket
-        available: 0,
       });
     }
   }
@@ -110,6 +100,35 @@ const PerformPriceCompare = (index: string, spuId: number, price: string) =>
       ) / 100,
   }[index]);
 
+//更新全局价格
+const PerformPriceUpdate = (index: string, spuId: number, newPrice: string) =>
+  ({
+    CD: setProds.set(spuId, {
+      priceCd: newPrice,
+      priceGz: setProds.get(spuId)!.priceGz,
+      priceBj: setProds.get(spuId)!.priceBj,
+      priceCq: setProds.get(spuId)!.priceCq,
+    }),
+    CQ: setProds.set(spuId, {
+      priceCd: setProds.get(spuId)!.priceCd,
+      priceGz: setProds.get(spuId)!.priceGz,
+      priceBj: setProds.get(spuId)!.priceBj,
+      priceCq: newPrice,
+    }),
+    GZ: setProds.set(spuId, {
+      priceCd: setProds.get(spuId)!.priceCd,
+      priceGz: newPrice,
+      priceBj: setProds.get(spuId)!.priceBj,
+      priceCq: setProds.get(spuId)!.priceCq,
+    }),
+    BJ: setProds.set(spuId, {
+      priceCd: setProds.get(spuId)!.priceCd,
+      priceGz: setProds.get(spuId)!.priceGz,
+      priceBj: newPrice,
+      priceCq: setProds.get(spuId)!.priceCq,
+    }),
+  }[index]);
+
 const productsMainProcess = async (
   products: ProductSAMS[],
   category: number,
@@ -120,11 +139,12 @@ const productsMainProcess = async (
 
   const result = await searchInCTP(category);
   const rows = result?.rows;
-  const productsExist = new Set<number>();
+  const productsExist = new Map<number, boolean>();
 
+  //遍历本分类历史数据,全部标记为下架
   if (rows && arrayIsnotEmty(rows)) {
     for (let i = 0; i < rows.length; i++) {
-      productsExist.add(rows[i].product);
+      productsExist.set(parseInt(rows[i].product), false);
     }
   }
 
@@ -133,50 +153,30 @@ const productsMainProcess = async (
     const spuId = parseInt(product.spuId);
     // 价格
     const price = product.priceInfo[0].price;
+    const exist = setProds.has(spuId) ? true : false;
+    const online = productsExist.has(spuId) ? true : false;
 
-    //判断数据是否重复
-    const sizeOriginal = productsExist.size;
-    // 强制为数字
-    productsExist.add(spuId);
-    const sizeAfter = productsExist.size;
-
-    //重复数据处理流程
-    //情况1: 存在商品,价格未变,目录下存在
-    if (
-      setProds.has(spuId) &&
-      PerformPriceCompare(index, spuId, price) === 1 &&
-      sizeOriginal === sizeAfter
-    ) {
-      return;
-    }
-    //情况2: 存在商品,价格未变,目录下不存在
-    if (
-      setProds.has(spuId) &&
-      PerformPriceCompare(index, spuId, price) === 1 &&
-      sizeOriginal < sizeAfter
-    ) {
-      insertInCTP(spuId, category);
-      return;
-    }
-    //情况3: 存在商品,价格改变,目录存在
-    if (setProds.has(spuId) && sizeOriginal === sizeAfter) {
+    // 全局下存在商品,分类下存在商品且价格改变
+    if (exist && online && PerformPriceCompare(index, spuId, price) !== 1) {
       const rate = PerformPriceCompare(index, spuId, price) as number;
       updateInProduct(price, rate, spuId, index);
       //记录历史价格
       insertInPrice(price, spuId, index);
+      //更新全局商品价格
+      PerformPriceUpdate(index, spuId, price);
       return;
     }
-    //情况4: 存在商品,价格改变,目录下不存在
-    if (setProds.has(spuId) && sizeOriginal < sizeAfter) {
-      const rate = PerformPriceCompare(index, spuId, price) as number;
-      updateInProduct(price, rate, spuId, index);
-      //记录历史价格
-      insertInPrice(price, spuId, index);
+    // 全局存在,分类存在,价格未改
+    if (exist && online) {
+      productsExist.set(spuId, true);
+      return;
+    }
+    // 全局存在,分类不存在,添加分类
+    if (exist && !online) {
       insertInCTP(spuId, category);
       return;
     }
-
-    //情况5: no exist in products
+    //新品流程
     // init ProductDB
     const tmp: ProductDB = {
       spuId: spuId,
@@ -199,7 +199,6 @@ const productsMainProcess = async (
       priceCd: price,
       priceCq: price,
       priceGz: price,
-      available: 1,
     });
 
     const relation: CTPDB = {
@@ -226,6 +225,13 @@ const productsMainProcess = async (
           VALUES (:CATEGORY, :PRODUCT)`
     );
   }
+
+  //循环遍历下架判断
+  productsExist.forEach((value, key) => {
+    if (value === false) {
+      updateOffLine(key);
+    }
+  });
 };
 
 export {getAllProducts, productsMainProcess};

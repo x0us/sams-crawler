@@ -80,11 +80,11 @@ export default class OracleDB {
   }
 
   private async createPool() {
-    oracledb.initOracleClient({configDir: '../oracle/network/admin'});
+    // oracledb.initOracleClient({configDir: '../oracle/network/admin'});
     // only user for macOS
-    // oracledb.initOracleClient({
-    //   libDir: '/Users/pi/Documents/instantclient_19_8/',
-    // });
+    oracledb.initOracleClient({
+      libDir: '/Users/pi/Documents/instantclient_19_8/',
+    });
     oracledb.autoCommit = true;
 
     this.pool = await oracledb.createPool(this.connectionParams);

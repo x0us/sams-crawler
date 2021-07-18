@@ -136,7 +136,6 @@ export interface PriceMapDB {
   priceCq: string;
   priceBj: string;
   priceGz: string;
-  available: number;
 }
 
 // type CamelCase<T extends string> = T extends `${infer A}_${infer B}`

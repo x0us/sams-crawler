@@ -41,7 +41,6 @@ const categoriesMainProcess = (
 
   categories.forEach(category => {
     //判断数据是否重复
-    const sizeOriginal = menusExist.size;
     const id = parseInt(category.groupingId);
     //判断id是否存在
     if ((menusExist.get(id) as number) < quantity) {

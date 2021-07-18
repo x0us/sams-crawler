@@ -24,12 +24,14 @@ const headers = {
 };
 
 async function main() {
+  console.log('program start at: ' + new Date());
   //init instance
   await OracleDB.instance();
   await getAllCategories();
   await getAllProducts();
 
   for (let i = 0; i < baseArray.length; i++) {
+    console.log(`start ${baseArrayIndex[i]} site crawler`);
     //step1 get all category, no asynchronous due to the free oracle services limitation(must less than 20 sessions)
     const {data} = await axios.post(baseCategroyUrl, baseArray[i], {
       headers: headers,
@@ -55,13 +57,13 @@ async function main() {
                   fin.groupingId
                 }","pageNum":1}`;
                 try {
-                  const {data} = await axios.post(productUrl, productPost, {
+                  const products = await axios.post(productUrl, productPost, {
                     headers: headers,
                   });
-                  if (data.data.dataList) {
-                    const x = data.data.dataList.length;
+                  if (products.data.data.dataList) {
+                    const x = products.data.data.dataList.length;
                     productsMainProcess(
-                      data.data.dataList,
+                      products.data.data.dataList,
                       fin.groupingId,
                       baseArrayIndex[i]
                     );
@@ -81,8 +83,7 @@ async function main() {
     }
   }
 
-  console.log('program finished at: ' + new Date())
+  console.log('program finished at: ' + new Date());
 }
 
 main();
-
