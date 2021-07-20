@@ -38,6 +38,7 @@
   "dependencies": {
     "axios": "^0.21.1",
     "dotenv": "^10.0.0",
+    "log4js": "^6.3.0",
     "oracledb": "^5.2.0",
     "reflect-metadata": "^0.1.13"
   }

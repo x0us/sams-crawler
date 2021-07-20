@@ -16,8 +16,9 @@ import {
   getAllProducts,
   productsMainProcess,
 } from './product/product.controller';
-
+import { logger } from './log4js'
 require('dotenv').config();
+
 
 const headers = {
   'Content-Type': ' application/json',
@@ -28,14 +29,14 @@ function sleep(ms: number) {
 }
 
 async function main() {
-  console.log('program start at: ' + new Date());
+  logger.debug('program start at: ' + new Date());
   //init instance
   await OracleDB.instance();
   await getAllCategories();
   await getAllProducts();
 
   for (let i = 0; i < baseArray.length; i++) {
-    console.log(`start ${baseArrayIndex[i]} site crawler`);
+    logger.debug(`start ${baseArrayIndex[i]} site crawler`);
     //step1 get all category, no asynchronous due to the free oracle services limitation(must less than 20 sessions)
     const {data} = await axios.post(baseCategroyUrl, baseArray[i], {
       headers: headers,
@@ -74,10 +75,10 @@ async function main() {
                     categoriesMainProcess(value.children, value.groupingId, x);
                   }
                 } catch (err) {
-                  console.log(
+                  logger.debug(
                     `groupdid : ${fin.groupingId} encount network issue`
                   );
-                  console.error(err);
+                  logger.error(err);
                 }
               }
             }
@@ -87,10 +88,11 @@ async function main() {
     }
   }
 
-  console.log('program finished at: ' + new Date());
-  console.log('waiting next day')
+  logger.debug('program process finished at: ' + new Date());
+  logger.debug('waiting next day')
   await sleep(86400000)
-  console.log('waiting finished')
+  logger.debug('waiting finished')
+  logger.debug('program waiting finished at: ' + new Date());
 }
 
 main();
