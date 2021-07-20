@@ -101,7 +101,7 @@ const PerformPriceCompare = (index: string, spuId: number, price: string) =>
   }[index]);
 
 //更新全局价格
-const PerformPriceUpdate = (index: string, spuId: number, newPrice: string) =>
+const performPriceUpdate = (index: string, spuId: number, newPrice: string) =>
   ({
     CD: setProds.set(spuId, {
       priceCd: newPrice,
@@ -159,11 +159,11 @@ const productsMainProcess = async (
     // 全局下存在商品,分类下存在商品且价格改变
     if (exist && online && PerformPriceCompare(index, spuId, price) !== 1) {
       const rate = PerformPriceCompare(index, spuId, price) as number;
-      updateInProduct(price, rate, spuId, index);
+      await updateInProduct(price, rate, spuId, index);
       //记录历史价格
-      insertInPrice(price, spuId, index);
+      await insertInPrice(price, spuId, index);
       //更新全局商品价格
-      PerformPriceUpdate(index, spuId, price);
+      performPriceUpdate(index, spuId, price);
       return;
     }
     // 全局存在,分类存在,价格未改
@@ -173,7 +173,8 @@ const productsMainProcess = async (
     }
     // 全局存在,分类不存在,添加分类
     if (exist && !online) {
-      insertInCTP(spuId, category);
+
+      await insertInCTP(spuId, category);
       return;
     }
     //新品流程
