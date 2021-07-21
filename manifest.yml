@@ -1,6 +1,5 @@
 ---
 applications:
-- path: .
-  name: jp-crawler-1
-  random-route: true
-  memory: 64M
+ - name: jp-crawler-1
+   random-route: true
+   memory: 128M
