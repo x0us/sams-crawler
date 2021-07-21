@@ -24,9 +24,9 @@ const headers = {
   'Content-Type': ' application/json',
 };
 
-function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// function sleep(ms: number) {
+//   return new Promise(resolve => setTimeout(resolve, ms));
+// }
 
 async function main() {
   logger.debug('program start at: ' + new Date());
@@ -87,15 +87,8 @@ async function main() {
       }
     }
   }
-
   logger.debug('program process finished at: ' + new Date());
-  logger.debug('waiting next day')
-  await sleep(86400000)
-  logger.debug('waiting finished')
-  logger.debug('program waiting finished at: ' + new Date());
 }
 
 main();
-
-//be benifit 
 
